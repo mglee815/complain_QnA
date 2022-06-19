@@ -59,13 +59,18 @@ class BERTDataset(Dataset):
 
 
 ##나중에 argpaser로 변경
-max_len = 512
-batch_size = 8 #4 문제 없음 8 될듯
-warmup_ratio = 0.1
-num_epochs = 5
 max_grad_norm = 1
 log_interval = 200
-learning_rate =  5e-5
+warmup_ratio = 0.1
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--eppoch', type = int, default=5)
+parser.add_argument('--batch_size', type = int, default=8)
+parser.add_argument('--max_len', type = int, default=512)
+parser.add_argument('--learning_rate', type = int, default=5e-5)
+
+args = parser.parse_args()
 
 print('get bertmodel and vocab')
 bertmodel, vocab = get_pytorch_kobert_model()
