@@ -2,7 +2,7 @@ import pandas as pd
 import mxnet
 import gluonnlp as nlp
 import numpy as np
-from tqdm import tqdm, tqdm_notebook
+from tqdm.notebook import tqdm
 
 import torch
 from torch import nn
@@ -20,13 +20,34 @@ from sklearn.model_selection import train_test_split
 
 #=========================================================#
 
-device = torch.device("cuda")
+##나중에 argpaser로 변경
+max_grad_norm = 1
+log_interval = 100
+warmup_ratio = 0.1
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--num_epochs', type = int, default=5)
+parser.add_argument('--batch_size', type = int, default=16)
+parser.add_argument('--max_len', type = int, default=512)
+parser.add_argument('--learning_rate', type = float, default=5e-5)
+
+args = parser.parse_args()
+
+print(f"build model with {args.num_epochs}epochs and {args.batch_size}batch size")
+#########################
+
+
+
+device = torch.device("cuda:1")
 print(f"Using {device}")
 
 
 data = pd.read_pickle("../result/sample5_tokenized.pkl")
-data.info()
+##############
+data = data.sample(frac = 0.1)
 
+print(data.info())
 
 label_to_int = {}
 for i, item in enumerate(data['접수기관'].unique()):
@@ -34,6 +55,8 @@ for i, item in enumerate(data['접수기관'].unique()):
 
 data['접수기관'] = data['접수기관'].apply(lambda x : label_to_int[x])
 data = data[['token', '접수기관']]
+
+
 
 dataset_train, dataest_test = train_test_split(data, test_size=0.1, random_state=42)
 
@@ -58,19 +81,6 @@ class BERTDataset(Dataset):
         return (len(self.labels))
 
 
-##나중에 argpaser로 변경
-max_grad_norm = 1
-log_interval = 200
-warmup_ratio = 0.1
-
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--eppoch', type = int, default=5)
-parser.add_argument('--batch_size', type = int, default=8)
-parser.add_argument('--max_len', type = int, default=512)
-parser.add_argument('--learning_rate', type = int, default=5e-5)
-
-args = parser.parse_args()
 
 print('get bertmodel and vocab')
 bertmodel, vocab = get_pytorch_kobert_model()
@@ -80,21 +90,21 @@ print("data setting")
 tokenizer = get_tokenizer()
 tok = nlp.data.BERTSPTokenizer(tokenizer, vocab, lower=False)
 
-train_data = BERTDataset(dataset_train, tok, max_len, True, False)
-test_data = BERTDataset(dataest_test, tok, max_len, True, False)
+train_data = BERTDataset(dataset_train, tok, args.max_len, True, False)
+test_data = BERTDataset(dataest_test, tok, args.max_len, True, False)
 
 train_dataloader = torch.utils.data.DataLoader(
-    train_data, batch_size = batch_size, num_workers = 8)
+    train_data, batch_size = args.batch_size, num_workers = 8)
 
 test_dataloader = torch.utils.data.DataLoader(
-    test_data, batch_size = batch_size, num_workers = 8)
+    test_data, batch_size = args.batch_size, num_workers = 8)
 
 
 class BERTClassifier(nn.Module):
     def __init__(self,
                  bert,
                  hidden_size = 768,
-                 num_classes=331,   ##클래스 수 조정##
+                 num_classes = len(dataset_train['접수기관'].unique()),   ##클래스 수 조정##
                  dr_rate=None,
                  params=None):
         super(BERTClassifier, self).__init__()
@@ -130,10 +140,10 @@ optimizer_grouped_parameters = [
     {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
 ]
 
-optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate)
+optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
 loss_fn = nn.CrossEntropyLoss()
 
-t_total = len(train_dataloader) * num_epochs
+t_total = len(train_dataloader) * args.num_epochs
 warmup_step = int(t_total * warmup_ratio)
 
 scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_step, num_training_steps=t_total)
@@ -148,11 +158,11 @@ train_dataloader
 
 
 print("Train Start")
-for e in range(num_epochs):
+for e in range(args.num_epochs):
     train_acc = 0.0
     test_acc = 0.0
     model.train()
-    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm_notebook(train_dataloader)):
+    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm(train_dataloader)):
         optimizer.zero_grad()
         token_ids = token_ids.long().to(device)
         segment_ids = segment_ids.long().to(device)
@@ -166,11 +176,11 @@ for e in range(num_epochs):
         scheduler.step()  # Update learning rate schedule
         train_acc += calc_accuracy(out, label)
         if batch_id % log_interval == 0:
-            print("epoch {} batch id {} loss {} train acc {}".format(e+1, batch_id+1, loss.data.cpu().numpy(), train_acc / (batch_id+1)))
+            print("epoch {} batch id {} / {} loss {} train acc {}".format(e+1, batch_id+1 , len(train_dataloader), loss.data.cpu().numpy(), train_acc / (batch_id+1)))
     print("epoch {} train acc {}".format(e+1, train_acc / (batch_id+1)))
     
     model.eval()
-    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm_notebook(test_dataloder)):
+    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm(test_dataloader)):
         token_ids = token_ids.long().to(device)
         segment_ids = segment_ids.long().to(device)
         valid_length= valid_length
@@ -178,3 +188,15 @@ for e in range(num_epochs):
         out = model(token_ids, valid_length, segment_ids)
         test_acc += calc_accuracy(out, label)
     print("epoch {} test acc {}".format(e+1, test_acc / (batch_id+1)))
+
+
+
+###########################SAVE
+
+PATH = '../result/kobert/' # google 드라이브 연동 해야함. 관련코드는 뺐음
+torch.save(model, PATH + 'KoBERT_0621.pt')  # 전체 모델 저장
+torch.save(model.state_dict(), PATH + 'Kobert_0621_state_dict.pt')  # 모델 객체의 state_dict 저장
+torch.save({
+    'model': model.state_dict(),
+    'optimizer': optimizer.state_dict()
+}, PATH + 'all.tar') 
