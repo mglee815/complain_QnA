@@ -22,7 +22,7 @@ from sklearn.model_selection import train_test_split
 
 ##나중에 argpaser로 변경
 max_grad_norm = 1
-log_interval = 100
+log_interval = 1000
 warmup_ratio = 0.1
 
 import argparse
@@ -39,13 +39,12 @@ print(f"build model with {args.num_epochs}epochs and {args.batch_size}batch size
 
 
 
-device = torch.device("cuda:1")
+device = torch.device("cuda:0")
 print(f"Using {device}")
 
 
 data = pd.read_pickle("../result/sample5_tokenized.pkl")
 ##############
-data = data.sample(frac = 0.1)
 
 print(data.info())
 
@@ -194,8 +193,8 @@ for e in range(args.num_epochs):
 ###########################SAVE
 
 PATH = '../result/kobert/' # google 드라이브 연동 해야함. 관련코드는 뺐음
-torch.save(model, PATH + 'KoBERT_0621.pt')  # 전체 모델 저장
-torch.save(model.state_dict(), PATH + 'Kobert_0621_state_dict.pt')  # 모델 객체의 state_dict 저장
+torch.save(model, PATH + 'KoBERT_0621_py.pt')  # 전체 모델 저장
+torch.save(model.state_dict(), PATH + 'Kobert_0621_py_state_dict.pt')  # 모델 객체의 state_dict 저장
 torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict()
