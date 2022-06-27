@@ -38,7 +38,7 @@ print(f"build model with {args.num_epochs}epochs and {args.batch_size}batch size
 #########################
 
 
-
+#GPU사용
 device = torch.device("cuda:0")
 print(f"Using {device}")
 
@@ -48,13 +48,14 @@ data = pd.read_pickle("../result/sample5_tokenized.pkl")
 
 print(data.info())
 
+#Label
 label_to_int = {}
 for i, item in enumerate(data['접수기관'].unique()):
     label_to_int[item] = i
 
+
 data['접수기관'] = data['접수기관'].apply(lambda x : label_to_int[x])
 data = data[['token', '접수기관']]
-
 
 
 dataset_train, dataest_test = train_test_split(data, test_size=0.1, random_state=42)
@@ -193,8 +194,8 @@ for e in range(args.num_epochs):
 ###########################SAVE
 
 PATH = '../result/kobert/' # google 드라이브 연동 해야함. 관련코드는 뺐음
-torch.save(model, PATH + 'KoBERT_0621_py.pt')  # 전체 모델 저장
-torch.save(model.state_dict(), PATH + 'Kobert_0621_py_state_dict.pt')  # 모델 객체의 state_dict 저장
+torch.save(model, PATH + 'KoBERT_0627_py.pt')  # 전체 모델 저장
+torch.save(model.state_dict(), PATH + 'Kobert_0627_py_state_dict.pt')  # 모델 객체의 state_dict 저장
 torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict()
