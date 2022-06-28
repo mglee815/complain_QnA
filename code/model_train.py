@@ -160,7 +160,6 @@ train_dataloader
 print("Train Start")
 for e in range(args.num_epochs):
     train_acc = 0.0
-    test_acc = 0.0
     model.train()
     for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm(train_dataloader)):
         optimizer.zero_grad()
@@ -180,6 +179,7 @@ for e in range(args.num_epochs):
     print("epoch {} train acc {}".format(e+1, train_acc / (batch_id+1)))
     
     model.eval()
+    test_acc = 0.0
     for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm(test_dataloader)):
         token_ids = token_ids.long().to(device)
         segment_ids = segment_ids.long().to(device)
