@@ -39,7 +39,7 @@ print(f"build model with {args.num_epochs}epochs and {args.batch_size}batch size
 
 
 #GPU사용
-device = torch.device("cuda:0")
+device = torch.device("cuda:1")
 print(f"Using {device}")
 
 
@@ -194,8 +194,8 @@ for e in range(args.num_epochs):
 ###########################SAVE
 
 PATH = '../result/kobert/' # google 드라이브 연동 해야함. 관련코드는 뺐음
-torch.save(model, PATH + 'KoBERT_0627_py.pt')  # 전체 모델 저장
-torch.save(model.state_dict(), PATH + 'Kobert_0627_py_state_dict.pt')  # 모델 객체의 state_dict 저장
+torch.save(model, PATH + 'KoBERT_0629_e10_py.pt')  # 전체 모델 저장
+torch.save(model.state_dict(), PATH + 'Kobert_0629_e10_py_state_dict.pt')  # 모델 객체의 state_dict 저장
 torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict()
