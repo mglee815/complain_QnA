@@ -105,7 +105,7 @@ class BERTClassifier(nn.Module):
                  bert,
                  hidden_size = 768,
                  num_classes = len(dataset_train['접수기관'].unique()),   ##클래스 수 조정##
-                 dr_rate=None,
+                 dr_rate = None,
                  params=None):
         super(BERTClassifier, self).__init__()
         self.bert = bert
@@ -194,8 +194,8 @@ for e in range(args.num_epochs):
 ###########################SAVE
 
 PATH = '../result/kobert/' # google 드라이브 연동 해야함. 관련코드는 뺐음
-torch.save(model, PATH + 'KoBERT_0629_e10_py.pt')  # 전체 모델 저장
-torch.save(model.state_dict(), PATH + 'Kobert_0629_e10_py_state_dict.pt')  # 모델 객체의 state_dict 저장
+torch.save(model, PATH + 'KoBERT_0705_e15_py.pt')  # 전체 모델 저장
+torch.save(model.state_dict(), PATH + 'Kobert_0705_e15_py_state_dict.pt')  # 모델 객체의 state_dict 저장
 torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict()
